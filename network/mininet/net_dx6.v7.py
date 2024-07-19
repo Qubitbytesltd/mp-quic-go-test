@@ -8,9 +8,11 @@ from mininet.topo import Topo
 from mininet.util import dumpNodeConnections
 from mininet.link import TCLink
 from subprocess import call
+import time, re, ratio
 
 TC_QDISC_RATE = 1
 TC_QDISC_LATENCY = 0
+log_file_path = 'iperf.log'
 
 daemons = """
 zebra=yes
@@ -46,6 +48,7 @@ ospf6 router-id 2.2.2.2
 
 interface r2-eth0 area 0.0.0.0
 interface r2-eth4 area 0.0.0.0
+interface r2-eth6 area 0.0.0.0
 """
 
 r3_conf = """\
@@ -68,7 +71,6 @@ ospf6 router-id 4.4.4.4
 
 interface r4-eth2 area 0.0.0.0
 interface r4-eth6 area 0.0.0.0
-interface r4-eth7 area 0.0.0.0
 """
 
 
@@ -81,7 +83,6 @@ ospf6 router-id 5.5.5.5
 
 interface r5-eth3 area 0.0.0.0
 interface r5-eth6 area 0.0.0.0
-interface r5-eth7 area 0.0.0.0
 """
 
 
@@ -92,6 +93,7 @@ router ospf6
 ospf6 router-id 6.6.6.6
 
 interface r6-eth0 area 0.0.0.0
+interface r6-eth2 area 0.0.0.0
 interface r6-eth4 area 0.0.0.0
 interface r6-eth5 area 0.0.0.0
 interface r6-eth7 area 0.0.0.0
@@ -105,8 +107,6 @@ ospf6 router-id 7.7.7.7
 
 
 interface r7-eth1 area 0.0.0.0
-interface r7-eth4 area 0.0.0.0
-interface r7-eth5 area 0.0.0.0
 interface r7-eth6 area 0.0.0.0
 """
 
@@ -189,73 +189,89 @@ class NetworkTopo( Topo ):
 
         self.addLink(r1, r7, intfName1="r1-eth7", intfName2="r7-eth1", bw = 50, delay = '10ms')
 
-        self.addLink(r7, r6, intfName1="r7-eth6", intfName2="r6-eth7", bw = 80, delay = '30ms')
+        self.addLink(r7, r6, intfName1="r7-eth6", intfName2="r6-eth7", bw = 50, delay = '30ms')
         
         self.addLink(r2, r4, intfName1="r2-eth4", intfName2="r4-eth2", bw = 50, delay = '10ms')
 
-        self.addLink(r4, r6, intfName1="r4-eth6", intfName2="r6-eth4", bw = 10, delay = '140ms')
+        self.addLink(r4, r6, intfName1="r4-eth6", intfName2="r6-eth4", bw = 50, delay = '30ms')
 
         self.addLink(r3, r5, intfName1="r3-eth5", intfName2="r5-eth3", bw = 50, delay = '10ms')        
 
         self.addLink(r5, r6, intfName1="r5-eth6", intfName2="r6-eth5", bw = 50, delay = '30ms')
 
-        self.addLink(r4, r7, intfName1="r4-eth7", intfName2="r7-eth4", bw = 50, delay = '10ms')
-
-        self.addLink(r5, r7, intfName1="r5-eth7", intfName2="r7-eth5", bw = 50, delay = '10ms')
-
-        
+        self.addLink(r2, r6, intfName1="r2-eth6", intfName2="r6-eth2", bw = 20, delay = '100ms')
 
 def run():
     cleanUp()
     topo = NetworkTopo()
     net = Mininet(topo=topo, link=TCLink)
     net.start()
-
     # set address
-   
+
     # r1
     net['r1'].cmd("ip -6 addr add fc00:1::1/64 dev r1-eth0")
+    net['r1'].cmd("ip link set dev r1-eth0 mtu 9000")
     net['r1'].cmd("ip -6 addr add fc00:a::2/64 dev r1-eth7")
+    net['r1'].cmd("ip link set dev r1-eth7 mtu 9000")
     # net['r1'].cmd("tc qdisc add dev r1-eth7 root netem limit 67 delay {0}ms rate {1}Mbit".format(TC_QDISC_LATENCY, TC_QDISC_RATE))
 
     # r2
     net['r2'].cmd("ip -6 addr add fc00:2::1/64 dev r2-eth0")
+    net['r2'].cmd("ip link set dev r2-eth0 mtu 9000")
     net['r2'].cmd("ip -6 addr add fc00:c::2/64 dev r2-eth4")
-    
+    net['r2'].cmd("ip link set dev r2-eth4 mtu 9000")
+    net['r2'].cmd("ip -6 addr add fc00:7::2/64 dev r2-eth6")
+    net['r2'].cmd("ip link set dev r2-eth6 mtu 9000")
 
     # r3
     net['r3'].cmd("ip -6 addr add fc00:4::1/64 dev r3-eth0")
+    net['r3'].cmd("ip link set dev r3-eth0 mtu 9000")
     net['r3'].cmd("ip -6 addr add fc00:e::2/64 dev r3-eth5")
-    
+    net['r3'].cmd("ip link set dev r3-eth5 mtu 9000")
+
     
     # r4
     net['r4'].cmd("ip -6 addr add fc00:c::1/64 dev r4-eth2")
+    net['r4'].cmd("ip link set dev r4-eth2 mtu 9000")    
     net['r4'].cmd("ip -6 addr add fc00:d::2/64 dev r4-eth6")
-    net['r4'].cmd("ip -6 addr add fc00:7::2/64 dev r4-eth7")
+    net['r4'].cmd("ip link set dev r4-eth6 mtu 9000")    
+    
 
     # r5
     net['r5'].cmd("ip -6 addr add fc00:e::1/64 dev r5-eth3")
+    net['r5'].cmd("ip link set dev r5-eth3 mtu 9000")
     net['r5'].cmd("ip -6 addr add fc00:f::2/64 dev r5-eth6")
-    net['r5'].cmd("ip -6 addr add fc00:8::2/64 dev r5-eth7")
+    net['r5'].cmd("ip link set dev r5-eth6 mtu 9000")
+  
 
     # r6
     net['r6'].cmd("ip -6 addr add fc00:3::1/64 dev r6-eth0")
+    net['r6'].cmd("ip link set dev r6-eth0 mtu 9000")
     net['r6'].cmd("ip -6 addr add fc00:b::1/64 dev r6-eth7")
+    net['r6'].cmd("ip link set dev r6-eth7 mtu 9000")
     net['r6'].cmd("ip -6 addr add fc00:d::1/64 dev r6-eth4")
+    net['r6'].cmd("ip link set dev r6-eth4 mtu 9000")
     net['r6'].cmd("ip -6 addr add fc00:f::1/64 dev r6-eth5")
-
+    net['r6'].cmd("ip link set dev r6-eth5 mtu 9000")
+    net['r6'].cmd("ip -6 addr add fc00:7::1/64 dev r6-eth2")
+    net['r6'].cmd("ip link set dev r6-eth2 mtu 9000")
+    
+    
     # r7
     net['r7'].cmd("ip -6 addr add fc00:a::1/64 dev r7-eth1")
-    net['r7'].cmd("ip -6 addr add fc00:7::1/64 dev r7-eth4")
-    net['r7'].cmd("ip -6 addr add fc00:8::1/64 dev r7-eth5")
+    net['r7'].cmd("ip link set dev r7-eth1 mtu 9000")
     net['r7'].cmd("ip -6 addr add fc00:b::2/64 dev r7-eth6")
+    net['r7'].cmd("ip link set dev r7-eth6 mtu 9000")
 
 
     #config route
     # h1
     net['h1'].cmd("ip -6 addr add fc00:1::2/64 dev h1-eth1")
+    net['h1'].cmd("ip link set dev h1-eth1 mtu 9000")
     net['h1'].cmd("ip -6 addr add fc00:2::2/64 dev h1-eth2")
+    net['h1'].cmd("ip link set dev h1-eth2 mtu 9000")
     net['h1'].cmd("ip -6 addr add fc00:4::2/64 dev h1-eth3")
+    net['h1'].cmd("ip link set dev h1-eth3 mtu 9000")
 
     net['h1'].cmd("ip -6 rule add from fc00:1::2 table 1")
     net['h1'].cmd("ip -6 route add fc00:1::0/64 dev h1-eth1 scope link table 1")
@@ -273,6 +289,7 @@ def run():
 
     # h3
     net['h3'].cmd("ip -6 addr add fc00:3::2/64 dev h3-eth6")
+    net['h3'].cmd("ip link set dev h3-eth6 mtu 9000")
 
     net['h3'].cmd("ip -6 rule add from fc00:3::2 table 1")
     net['h3'].cmd("ip -6 route add fc00:3::0/64 dev h3-eth6 scope link table 1")
@@ -281,21 +298,74 @@ def run():
     net['h3'].cmd("ip -6 route add default scope global nexthop via fc00:3::1 dev h3-eth6")
     
     dumpNodeConnections( net.hosts )
+    print("Version 7")
+    
+    
+    
+
+    net['r1'].vtysh_cmd(r1_conf)
+    net['r2'].vtysh_cmd(r2_conf)
+    net['r3'].vtysh_cmd(r3_conf)
+    net['r4'].vtysh_cmd(r4_conf)
+    net['r5'].vtysh_cmd(r5_conf)
+    net['r6'].vtysh_cmd(r6_conf)
+    net['r7'].vtysh_cmd(r7_conf)
+
+    
+    # time.sleep(20)
+
+    # print("Start Testing Bandwidth link1")
+
+    # net["r6"].cmd("iperf -s -B fc00:7::1 -V -u &")
+    # time.sleep(2)
+    # net["r2"].cmd("(iperf -c fc00:7::1 -B fc00:7::2 -i 1 -V -u -b 200M) > iperf.log")
+    # # Ping
+    # time.sleep(1)
+    # net["r2"].cmd("ping -6 -I fc00:7::2 -c 10 fc00:7::1 > ping.log")
+    # link1 = []
+    # link1.append(bandwidth(log_file_path)[0])
+    # link1.append(float(delay())/2)
+    # print(link1)
+    
+    # net["r6"].cmd("pkill -f 'iperf -s -B fc00:7::1 -V -u'")
+
+    # net["r2"].cmd("ip -6 route add fc00:d::1/128 encap seg6 mode encap segs fc00:d::2 dev r2-eth4")
+    # net["r6"].cmd("ip -6 route add fc00:c::2/128 encap seg6 mode encap segs fc00:c::1 dev r6-eth4")
+
+    # time.sleep(5)
+    # print("Start Testing Bandwidth link2")
+    # net["r6"].cmd("iperf -s -B fc00:d::1 -V -u &")
+    # time.sleep(2)
+    # net["r2"].cmd("(iperf -c fc00:d::1 -B fc00:c::2 -i 1 -V -u -b 200M) > iperf.log")
+    # # Ping
+    # time.sleep(1)
+    # net["r2"].cmd("ping -6 -I fc00:c::2 -c 10 fc00:d::1 > ping.log")
+    # link2 = []
+    # link2.append(bandwidth(log_file_path)[0])
+    # link2.append(float(delay())/2)
+    # print(link2)
+
+    # net["r6"].cmd("pkill -f 'iperf -s -B fc00:d::1 -V -u'")
+
+    # ratio_value = ratio.calculate_bandwidth_delay_ratio(link1,link2)
+    # print(ratio_value)
+
 
     # add route
- 
-    # r2 route
 
+    # r2 route
+    
     # # forward
     # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:7::1,fc00:b::1,fc00:3::1:2 dev r2-eth4")
     # net["r6"].cmd("ip -6 route add fc00:3::1:2/128 encap seg6local action End.DX6 nh6 fc00:3::2 dev r6-eth0")
-    # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:7::1,fc00:b::1 dev r2-eth4")
-
+    # print('#####SRv6-ed######')
+    # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:d::1 dev r2-eth4")
 
     # backward
     # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:b::2,fc00:7::2,fc00:c::2,fc00:2::1:2 dev r6-eth4")
     # net["r2"].cmd("ip -6 route add fc00:2::1:2/128 encap seg6local action End.DX6 nh6 fc00:2::2 dev r2-eth0")
-    # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:b::2,fc00:7::2,fc00:c::2 dev r6-eth4")
+
+    # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:d::2,fc00:c::2 dev r6-eth4")
 
     
     # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:d::1,fc00:3::1:2 dev r2-eth4")
@@ -324,20 +394,34 @@ def run():
     # net["r3"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:e::2,fc00:ee::2,fc00:3::1:2 dev r3_r5")
     # net["r6"].cmd("ip -6 route add fc00:3::1:2/128 encap seg6local action End.DX6 nh6 fc00:3::2 dev r6_h3")
 
-    
-    
 
-    net['r1'].vtysh_cmd(r1_conf)
-    net['r2'].vtysh_cmd(r2_conf)
-    net['r3'].vtysh_cmd(r3_conf)
-    net['r4'].vtysh_cmd(r4_conf)
-    net['r5'].vtysh_cmd(r5_conf)
-    net['r6'].vtysh_cmd(r6_conf)
-    net['r7'].vtysh_cmd(r7_conf)
 
     CLI(net)
     net.stop()
     
+def bandwidth(log_file_path):
+    bandwidths = []
+    with open(log_file_path, 'r') as file:
+        for line in file:
+
+            match = re.search(r'(\d+\.\d+) Mbits/sec', line)
+            if match:
+          
+                bandwidth = float(match.group(1))
+                bandwidths.append(bandwidth)
+    return bandwidths
+
+def delay():
+
+    # Read the log file
+    with open('ping.log', 'r') as file:
+        log_data = file.read()
+
+    # Regular expression to extract the average time
+    avg_time_regex = re.search(r'rtt min/avg/max/mdev = [\d\.]+/([\d\.]+)/[\d\.]+/[\d\.]+ ms', log_data)
+    avg_time = avg_time_regex.group(1)
+    return avg_time
+
 
 def cleanUp():
     info('*** clear Mininet environment\n')

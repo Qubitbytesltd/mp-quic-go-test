@@ -16,9 +16,6 @@ with open(log_file_path, 'r') as file:
             # Add the cleaned lines to a list
             times.append(clean_line)
 
-
-
-
 # Convert times to total seconds
 total_seconds = []
 for time_str in times:
@@ -26,8 +23,15 @@ for time_str in times:
     seconds = seconds[:-1]  # Remove the 's' at the end
     total_seconds.append(int(minutes) * 60 + float(seconds))
 
-# Calculate the average time in seconds
-average_seconds = sum(total_seconds) / len(total_seconds)
+# Sort the list and remove the shortest and the longest time
+total_seconds_sorted = sorted(total_seconds)
+if len(total_seconds_sorted) > 2:
+    modified_total_seconds = total_seconds_sorted[1:-1]  # Remove the smallest and the largest value
+else:
+    modified_total_seconds = total_seconds_sorted  # Do not remove any item if there are only two or fewer elements
+
+# Calculate the average time in seconds from the modified list
+average_seconds = sum(modified_total_seconds) / len(modified_total_seconds)
 
 # Convert the average time back to the original format "XmY.ZZZs"
 avg_minutes = int(average_seconds // 60)

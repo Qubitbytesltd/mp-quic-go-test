@@ -46,6 +46,7 @@ ospf6 router-id 2.2.2.2
 
 interface r2-eth0 area 0.0.0.0
 interface r2-eth4 area 0.0.0.0
+interface r2-eth6 area 0.0.0.0
 """
 
 r3_conf = """\
@@ -57,6 +58,7 @@ ospf6 router-id 3.3.3.3
 
 interface r3-eth0 area 0.0.0.0
 interface r3-eth5 area 0.0.0.0
+interface r3-eth6 area 0.0.0.0
 """
 
 r4_conf = """\
@@ -68,7 +70,6 @@ ospf6 router-id 4.4.4.4
 
 interface r4-eth2 area 0.0.0.0
 interface r4-eth6 area 0.0.0.0
-interface r4-eth7 area 0.0.0.0
 """
 
 
@@ -81,7 +82,6 @@ ospf6 router-id 5.5.5.5
 
 interface r5-eth3 area 0.0.0.0
 interface r5-eth6 area 0.0.0.0
-interface r5-eth7 area 0.0.0.0
 """
 
 
@@ -92,6 +92,8 @@ router ospf6
 ospf6 router-id 6.6.6.6
 
 interface r6-eth0 area 0.0.0.0
+interface r6-eth2 area 0.0.0.0
+interface r6-eth3 area 0.0.0.0
 interface r6-eth4 area 0.0.0.0
 interface r6-eth5 area 0.0.0.0
 interface r6-eth7 area 0.0.0.0
@@ -105,8 +107,6 @@ ospf6 router-id 7.7.7.7
 
 
 interface r7-eth1 area 0.0.0.0
-interface r7-eth4 area 0.0.0.0
-interface r7-eth5 area 0.0.0.0
 interface r7-eth6 area 0.0.0.0
 """
 
@@ -189,19 +189,19 @@ class NetworkTopo( Topo ):
 
         self.addLink(r1, r7, intfName1="r1-eth7", intfName2="r7-eth1", bw = 50, delay = '10ms')
 
-        self.addLink(r7, r6, intfName1="r7-eth6", intfName2="r6-eth7", bw = 80, delay = '30ms')
+        self.addLink(r7, r6, intfName1="r7-eth6", intfName2="r6-eth7", bw = 50, delay = '30ms')
         
         self.addLink(r2, r4, intfName1="r2-eth4", intfName2="r4-eth2", bw = 50, delay = '10ms')
 
-        self.addLink(r4, r6, intfName1="r4-eth6", intfName2="r6-eth4", bw = 10, delay = '140ms')
+        self.addLink(r4, r6, intfName1="r4-eth6", intfName2="r6-eth4", bw = 50, delay = '30ms')
 
         self.addLink(r3, r5, intfName1="r3-eth5", intfName2="r5-eth3", bw = 50, delay = '10ms')        
 
         self.addLink(r5, r6, intfName1="r5-eth6", intfName2="r6-eth5", bw = 50, delay = '30ms')
 
-        self.addLink(r4, r7, intfName1="r4-eth7", intfName2="r7-eth4", bw = 50, delay = '10ms')
+        self.addLink(r2, r6, intfName1="r2-eth6", intfName2="r6-eth2", bw = 14, delay = '120ms')
 
-        self.addLink(r5, r7, intfName1="r5-eth7", intfName2="r7-eth5", bw = 50, delay = '10ms')
+        self.addLink(r3, r6, intfName1="r3-eth6", intfName2="r6-eth3", bw = 50, delay = '30ms')
 
         
 
@@ -221,33 +221,33 @@ def run():
     # r2
     net['r2'].cmd("ip -6 addr add fc00:2::1/64 dev r2-eth0")
     net['r2'].cmd("ip -6 addr add fc00:c::2/64 dev r2-eth4")
-    
+    net['r2'].cmd("ip -6 addr add fc00:7::2/64 dev r2-eth6")
 
     # r3
     net['r3'].cmd("ip -6 addr add fc00:4::1/64 dev r3-eth0")
     net['r3'].cmd("ip -6 addr add fc00:e::2/64 dev r3-eth5")
-    
+    net['r3'].cmd("ip -6 addr add fc00:8::2/64 dev r3-eth6")
     
     # r4
     net['r4'].cmd("ip -6 addr add fc00:c::1/64 dev r4-eth2")
     net['r4'].cmd("ip -6 addr add fc00:d::2/64 dev r4-eth6")
-    net['r4'].cmd("ip -6 addr add fc00:7::2/64 dev r4-eth7")
+    
 
     # r5
     net['r5'].cmd("ip -6 addr add fc00:e::1/64 dev r5-eth3")
     net['r5'].cmd("ip -6 addr add fc00:f::2/64 dev r5-eth6")
-    net['r5'].cmd("ip -6 addr add fc00:8::2/64 dev r5-eth7")
+  
 
     # r6
     net['r6'].cmd("ip -6 addr add fc00:3::1/64 dev r6-eth0")
     net['r6'].cmd("ip -6 addr add fc00:b::1/64 dev r6-eth7")
     net['r6'].cmd("ip -6 addr add fc00:d::1/64 dev r6-eth4")
     net['r6'].cmd("ip -6 addr add fc00:f::1/64 dev r6-eth5")
+    net['r6'].cmd("ip -6 addr add fc00:7::1/64 dev r6-eth2")
+    net['r6'].cmd("ip -6 addr add fc00:8::1/64 dev r6-eth3")
 
     # r7
     net['r7'].cmd("ip -6 addr add fc00:a::1/64 dev r7-eth1")
-    net['r7'].cmd("ip -6 addr add fc00:7::1/64 dev r7-eth4")
-    net['r7'].cmd("ip -6 addr add fc00:8::1/64 dev r7-eth5")
     net['r7'].cmd("ip -6 addr add fc00:b::2/64 dev r7-eth6")
 
 
@@ -281,7 +281,7 @@ def run():
     net['h3'].cmd("ip -6 route add default scope global nexthop via fc00:3::1 dev h3-eth6")
     
     dumpNodeConnections( net.hosts )
-
+    print("Version 5")
     # add route
  
     # r2 route
@@ -289,13 +289,16 @@ def run():
     # # forward
     # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:7::1,fc00:b::1,fc00:3::1:2 dev r2-eth4")
     # net["r6"].cmd("ip -6 route add fc00:3::1:2/128 encap seg6local action End.DX6 nh6 fc00:3::2 dev r6-eth0")
-    # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:7::1,fc00:b::1 dev r2-eth4")
-
+    # print('#####SRv6-ed######')
+    # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:d::1 dev r2-eth4")
+    # net["r3"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:e::1,fc00:f::1 dev r3-eth5")
 
     # backward
     # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:b::2,fc00:7::2,fc00:c::2,fc00:2::1:2 dev r6-eth4")
     # net["r2"].cmd("ip -6 route add fc00:2::1:2/128 encap seg6local action End.DX6 nh6 fc00:2::2 dev r2-eth0")
-    # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:b::2,fc00:7::2,fc00:c::2 dev r6-eth4")
+
+    # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:d::2,fc00:c::2 dev r6-eth4")
+    # net["r6"].cmd("ip -6 route add fc00:4::2/128 encap seg6 mode encap segs fc00:f::2,fc00:e::2 dev r6-eth5")
 
     
     # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:d::1,fc00:3::1:2 dev r2-eth4")

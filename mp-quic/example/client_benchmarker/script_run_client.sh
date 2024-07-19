@@ -1,5 +1,6 @@
 rm result.log
 rm test.log
+rm cache*
 
 for i in {1..10}; do
 
