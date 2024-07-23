@@ -199,7 +199,7 @@ class NetworkTopo( Topo ):
 
         self.addLink(r5, r6, intfName1="r5-eth6", intfName2="r6-eth5", bw = 50, delay = '30ms')
 
-        self.addLink(r2, r6, intfName1="r2-eth6", intfName2="r6-eth2", bw = 20, delay = '100ms')
+        self.addLink(r2, r6, intfName1="r2-eth6", intfName2="r6-eth2", bw = 12, delay = '100ms')
 
 def run():
     cleanUp()
@@ -298,7 +298,7 @@ def run():
     net['h3'].cmd("ip -6 route add default scope global nexthop via fc00:3::1 dev h3-eth6")
     
     dumpNodeConnections( net.hosts )
-    print("Version 7")
+    print("*** Version 7")
     
     
     
@@ -312,43 +312,58 @@ def run():
     net['r7'].vtysh_cmd(r7_conf)
 
     
-    # time.sleep(20)
+    time.sleep(20)
 
-    # print("Start Testing Bandwidth link1")
+    print("**** Start Testing Bandwidth link1")
+    net["r6"].cmd("iperf -s -B fc00:7::1 -V -u &")
+    time.sleep(2)
+    net["r2"].cmd("(iperf -c fc00:7::1 -B fc00:7::2 -i 1 -V -u -b 200M) > iperf.log")
+    link1 = []
+    link1.append(bandwidth(log_file_path)[0])
 
-    # net["r6"].cmd("iperf -s -B fc00:7::1 -V -u &")
-    # time.sleep(2)
-    # net["r2"].cmd("(iperf -c fc00:7::1 -B fc00:7::2 -i 1 -V -u -b 200M) > iperf.log")
-    # # Ping
-    # time.sleep(1)
-    # net["r2"].cmd("ping -6 -I fc00:7::2 -c 10 fc00:7::1 > ping.log")
-    # link1 = []
-    # link1.append(bandwidth(log_file_path)[0])
-    # link1.append(float(delay())/2)
-    # print(link1)
     
-    # net["r6"].cmd("pkill -f 'iperf -s -B fc00:7::1 -V -u'")
+    # net["r6"].cmd("pkill -f -e 'iperf -s -B fc00:7::1 -V -u' > pkill.log")
+
+   
+
+    time.sleep(20)
+
+    print("**** Start Testing Bandwidth link2")
+    net["r6"].cmd("iperf -s -B fc00:d::1 -V -u &")
+    time.sleep(2)
+    net["r2"].cmd("(iperf -c fc00:d::1 -B fc00:c::2 -i 1 -V -u -b 200M) > iperf.log")
+    link2 = []
+    link2.append(bandwidth(log_file_path)[0])
+
+    time.sleep(15)
+
+    # Ping
+    print("**** Start Testing Delay link1")
+    net["r2"].cmd("traceroute -i r2-eth6 fc00:7::1")
+    time.sleep(1)
+    net["r2"].cmd("traceroute -i r2-eth6 fc00:7::1 > traceroute.log")
+    # link1.append(float(delay())/2)
+    link1.append(float(extract_last_delay())/2)
+    
 
     # net["r2"].cmd("ip -6 route add fc00:d::1/128 encap seg6 mode encap segs fc00:d::2 dev r2-eth4")
     # net["r6"].cmd("ip -6 route add fc00:c::2/128 encap seg6 mode encap segs fc00:c::1 dev r6-eth4")
-
-    # time.sleep(5)
-    # print("Start Testing Bandwidth link2")
-    # net["r6"].cmd("iperf -s -B fc00:d::1 -V -u &")
-    # time.sleep(2)
-    # net["r2"].cmd("(iperf -c fc00:d::1 -B fc00:c::2 -i 1 -V -u -b 200M) > iperf.log")
-    # # Ping
-    # time.sleep(1)
-    # net["r2"].cmd("ping -6 -I fc00:c::2 -c 10 fc00:d::1 > ping.log")
-    # link2 = []
-    # link2.append(bandwidth(log_file_path)[0])
+    time.sleep(15)
+ 
+    print("**** Start Testing Delay link2")
+    net["r2"].cmd("traceroute -i r2-eth4 fc00:d::1")
+    time.sleep(1)
+    net["r2"].cmd("traceroute -i r2-eth4 fc00:d::1 > traceroute.log")
     # link2.append(float(delay())/2)
-    # print(link2)
+    link2.append(float(extract_last_delay())/2)
+
+    print(link1)
+    print(link2)
 
     # net["r6"].cmd("pkill -f 'iperf -s -B fc00:d::1 -V -u'")
 
-    # ratio_value = ratio.calculate_bandwidth_delay_ratio(link1,link2)
-    # print(ratio_value)
+    ratio_value = ratio.calculate_bandwidth_delay_ratio(link1,link2)
+    print("#### Ratio: ",ratio_value)
 
 
     # add route
@@ -358,14 +373,15 @@ def run():
     # # forward
     # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:7::1,fc00:b::1,fc00:3::1:2 dev r2-eth4")
     # net["r6"].cmd("ip -6 route add fc00:3::1:2/128 encap seg6local action End.DX6 nh6 fc00:3::2 dev r6-eth0")
-    # print('#####SRv6-ed######')
-    # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:d::1 dev r2-eth4")
+    # if ratio_value > 6.2:
+    #     print('***** SRv6 Rule Added ******')
+    #     net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:d::1 dev r2-eth4")
 
     # backward
     # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:b::2,fc00:7::2,fc00:c::2,fc00:2::1:2 dev r6-eth4")
     # net["r2"].cmd("ip -6 route add fc00:2::1:2/128 encap seg6local action End.DX6 nh6 fc00:2::2 dev r2-eth0")
 
-    # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:d::2,fc00:c::2 dev r6-eth4")
+        # net["r6"].cmd("ip -6 route add fc00:2::2/128 encap seg6 mode encap segs fc00:d::2,fc00:c::2 dev r6-eth4")
 
     
     # net["r2"].cmd("ip -6 route add fc00:3::2/128 encap seg6 mode encap segs fc00:c::1,fc00:d::1,fc00:3::1:2 dev r2-eth4")
@@ -422,6 +438,20 @@ def delay():
     avg_time = avg_time_regex.group(1)
     return avg_time
 
+def extract_last_delay():
+    pattern = re.compile(r"(\d+\.\d+) ms")
+    with open('traceroute.log', 'r') as file:
+        content = file.read()
+    
+    # Split the content into blocks, assuming each traceroute result is separated by two newlines
+    blocks = content.split('\n\n')
+
+    # Process each block of traceroute results
+    for block in blocks:
+        # Extract all delay matches
+        matches = pattern.findall(block.split("\n")[-2])
+        
+    return matches[0]
 
 def cleanUp():
     info('*** clear Mininet environment\n')
