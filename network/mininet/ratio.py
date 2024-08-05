@@ -22,12 +22,12 @@ def calculate_bandwidth_delay_ratio(path_A, path_B):
     
     return ratio
 
-# Example usage:
-# Path A [bandwidth in Mbps, delay in ms]
+# # Example usage:
+# # Path A [bandwidth in Mbps, delay in ms]
 # path_A = [20, 100]  # Direct path r2-r6
-# Path B [bandwidth in Mbps, delay in ms]
+# # Path B [bandwidth in Mbps, delay in ms]
 # path_B = [50, 40]   # Indirect path r2-r4-r6 through r4
 
-# Calculate the ratio
+# # Calculate the ratio
 # ratio = calculate_bandwidth_delay_ratio(path_A, path_B)
 # print("Ratio of BDP (Path B to Path A):", ratio)
